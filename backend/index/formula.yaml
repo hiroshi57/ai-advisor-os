@@ -1,0 +1,8 @@
+# AI-Adoption Index 算出式(バージョン管理: スコアに version をひも付ける)
+version: "v1.0"
+weights:
+  utilization: 0.35   # 利用率 WAU/対象者
+  breadth: 0.20       # 活用の幅 利用部署数/全部署数
+  depth: 0.25         # 深さ 用途段階(定型文=1/分析=2/意思決定支援=3)
+  governance: 0.20    # ガバナンス チェックリスト充足率
+k_anonymity: 5        # ベンチマーク最小セグメント企業数
