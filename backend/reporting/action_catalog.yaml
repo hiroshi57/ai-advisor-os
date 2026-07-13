@@ -1,0 +1,30 @@
+# 施策カタログ(抜粋). 月次レポートの推奨アクションはここからのみ選定する(創作しない)。
+actions:
+  - id: ACT-001
+    name: AI基礎研修(全社)
+    when: {index_below: 40}
+    target: 全社
+  - id: ACT-002
+    name: 活用深化ワークショップ
+    when: {utilization_above: 60, depth_below: 50}
+    target: 推進部署
+  - id: ACT-003
+    name: 部署横展開キックオフ
+    when: {breadth_below: 40}
+    target: 未導入部署
+  - id: ACT-004
+    name: プロンプト作成トレーニング
+    when: {ability_below: 50}
+    target: 実務担当
+  - id: ACT-005
+    name: AI利用ガイドライン整備支援
+    when: {governance_below: 50}
+    target: 管理部門
+  - id: ACT-006
+    name: 議事録AI導入(デジタルマーケ業務)
+    when: {utilization_below: 50}
+    target: マーケ部
+  - id: ACT-007
+    name: 広告レポート自動生成の内製化支援
+    when: {depth_below: 60}
+    target: 広告運用チーム

@@ -11,18 +11,20 @@ AI顧問オペレーションOS: 月額制AI顧問サービスの運営基盤。
 
 ## ステータス
 
-🟢 **差別化コア実装済み**（承認フロー＋Index＋k匿名ベンチマーク） / 他機能は承認後に拡張
+🟢 **全機能拡張中**（F1カルテ / F2承認フロー / F3月次レポート / Index+k匿名ベンチ）
 
 - [docs/index_spec.md](docs/index_spec.md) / [docs/approval_flow.md](docs/approval_flow.md) — 仕様
-- `backend/index/` — AI-Adoption Index(4因子, formula.yamlでバージョン管理) + k匿名ベンチマーク
-- `backend/assistant/approval.py` — 顧問承認フロー(出典必須/未承認は未送信) （tests 10件PASS）
+- `backend/index/` — AI-Adoption Index(formula.yamlでバージョン管理) + k匿名ベンチマーク
+- `backend/assistant/approval.py` — 顧問承認フロー(出典必須/未承認は未送信)
+- `backend/karte/` — F1 クライアントカルテ(相談履歴/決定事項の追記)
+- `backend/reporting/` — F3 月次レポート(action_catalogから条件マッチ選定=**創作しない**, 全推奨に施策ID)
 
 ```bash
 python demo.py          # Index算出 + k匿名ベンチ + 承認フロー
-python -m pytest -q
+python -m pytest -q     # テスト16件
 ```
 
-進め方（プロンプト指定）: 承認フロー＋Index仕様 → **承認** → 実装（F1→F2→F5→F3→F4）。
+進め方（プロンプト指定）: F1→F2→F5→F3→F4。
 
 ## 予定フォルダ構成（実装時）
 
