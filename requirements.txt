@@ -1,3 +1,6 @@
-# コアは標準ライブラリ + PyYAML(formula.yaml読込)で動作。
+# コアは標準ライブラリ + PyYAML。API層は FastAPI。
 PyYAML>=6.0
 pytest>=8.0
+fastapi>=0.110
+uvicorn>=0.29
+httpx>=0.27

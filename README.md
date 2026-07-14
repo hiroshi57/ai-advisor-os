@@ -21,10 +21,21 @@ AI顧問オペレーションOS: 月額制AI顧問サービスの運営基盤。
 
 ```bash
 python demo.py          # Index算出 + k匿名ベンチ + 承認フロー
-python -m pytest -q     # テスト16件
+python -m pytest -q     # テスト21件(DB/テナント分離/HTMLレポート/API E2E含む)
 ```
 
-進め方（プロンプト指定）: F1→F2→F5→F3→F4。
+## 本番構成（SQLite + HTMLレポート + Vite 2画面）
+
+- **DB**: `backend/db/`（SQLite）。クライアント＋Index月次記録、全クエリ tenant_id 強制フィルタ＝**テナント分離**
+- **API**: `backend/api/main.py`（FastAPI）。clients / index(算出) / report(HTML, 業界ベンチマーク付き)
+- **HTMLレポート**: `backend/report/builder.py`（Index＋4因子＋推移＋推奨施策＋k匿名ベンチマーク、XSSエスケープ）
+- **フロント**: `frontend/`（React+Vite）。**顧問コンソール**＋**クライアントポータル**の2画面。ビルド不要は `frontend/standalone.html`
+- **CI**: `.github/workflows/ci.yml`
+
+```bash
+uvicorn backend.api.main:app --reload
+cd frontend && npm install && npm run dev     # or: open frontend/standalone.html
+```
 
 ## 予定フォルダ構成（実装時）
 

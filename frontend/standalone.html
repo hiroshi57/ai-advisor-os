@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI顧問OS(スタンドアロン)</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body{font-family:system-ui,sans-serif;background:#f7f8fa;margin:0;padding:24px;color:#1a1a2e}
+    .wrap{max-width:760px;margin:0 auto} h1{color:#6a4c93;font-size:22px}
+    .card{background:#fff;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .big{font-size:40px;color:#6a4c93;font-weight:bold}
+    table{border-collapse:collapse;width:100%} th,td{border:1px solid #dde;padding:6px 8px} th{background:#f0ecf7}
+    nav button{margin-right:8px}
+  </style>
+</head>
+<body><div id="root"></div>
+<script type="text/babel" data-presets="react">
+  const CLIENTS=[{id:1,company:"デモ商事",industry:"IT",score:62.5},
+    {id:2,company:"サンプル製作所",industry:"製造",score:38.0},
+    {id:3,company:"テスト広告",industry:"広告",score:71.0}];
+  const PORTAL={company:"デモ商事",score:62.5,
+    factors:{utilization:60,breadth:50,depth:70,governance:70},
+    benchmark:{available:true,median:55,percentile_of:33.3,n:6}};
+  function App(){
+    const [tab,setTab]=React.useState("advisor");
+    return (<div className="wrap"><h1>AI顧問オペレーションOS <small style={{fontSize:12,color:"#889"}}>(デモ)</small></h1>
+      <nav><button onClick={()=>setTab("advisor")} disabled={tab==="advisor"}>顧問コンソール</button>
+        <button onClick={()=>setTab("client")} disabled={tab==="client"}>クライアントポータル</button></nav>
+      {tab==="advisor"?(<div className="card"><h2>担当クライアント(最大50社)</h2>
+        <table><tr><th>企業</th><th>業界</th><th>Index</th><th>状態</th></tr>
+          {CLIENTS.map(c=>(<tr key={c.id}><td>{c.company}</td><td>{c.industry}</td><td>{c.score.toFixed(1)}</td>
+            <td>{c.score>=60?"🟢良好":c.score>=40?"🟡要注視":"🔴要介入"}</td></tr>))}</table></div>
+      ):(<div className="card"><h2>{PORTAL.company} の AI活用状況</h2>
+        <div className="big">{PORTAL.score.toFixed(1)} <small>/100</small></div>
+        <h3>4因子</h3><ul>{Object.entries(PORTAL.factors).map(([k,v])=>(<li key={k}>{k}: {v}</li>))}</ul>
+        <h3>業界ベンチマーク</h3><p>中央値 {PORTAL.benchmark.median} / 上位 <b>{PORTAL.benchmark.percentile_of}%</b>（n={PORTAL.benchmark.n}）</p>
+      </div>)}</div>);
+  }
+  ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>
