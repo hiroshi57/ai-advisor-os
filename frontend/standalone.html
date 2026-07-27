@@ -2,53 +2,133 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI顧問OS</title>
+  <title>AI顧問OS（実データ入力）</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
   <style>
     body{font-family:system-ui,sans-serif;background:#f7f8fa;margin:0;padding:24px;color:#1a1a2e}
-    .wrap{max-width:760px;margin:0 auto} h1{color:#6a4c93;font-size:22px}
+    .wrap{max-width:900px;margin:0 auto} h1{color:#6a4c93;font-size:22px}
+    h2{font-size:16px;margin:2px 0 8px} .sub{color:#8a8f9c;font-size:12px}
     .card{background:#fff;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+    .real{background:#f2ecfb;border:1px solid #d8c9f0;border-radius:10px;padding:8px 12px;font-size:13px;color:#6a4c93;margin-bottom:8px}
     .big{font-size:40px;color:#6a4c93;font-weight:bold}
-    table{border-collapse:collapse;width:100%} th,td{border:1px solid #dde;padding:6px 8px} th{background:#f0ecf7}
-    nav button{margin-right:8px}
-  
-    /* --- レスポンシブ強化(スマホ最適化) --- */
-    *{box-sizing:border-box} img,pre,table{max-width:100%}
-    .metrics{flex-wrap:wrap}
-    @media (max-width:640px){
-      body{padding:14px} .wrap{max-width:100%}
-      h1{font-size:19px} nav button{margin-bottom:6px}
-      .metrics{flex-direction:column;gap:8px} .metric{width:100%}
-      table{display:block;overflow-x:auto;white-space:nowrap;font-size:13px}
-      pre{overflow-x:auto} input,textarea,select{max-width:100%;width:100%}
-    }
-</style>
+    table{border-collapse:collapse;width:100%;font-size:13px} th,td{border:1px solid #e3e0ec;padding:6px 8px;text-align:center} th{background:#f0ecf7}
+    td.l,th.l{text-align:left} tr.clk{cursor:pointer} tr.clk:hover{background:#faf7ff} tr.sel{background:#f2ecfb}
+    td input{width:52px;border:1px solid #d8d3e4;border-radius:5px;padding:3px 4px;font-size:12.5px;text-align:right}
+    td input.nm{width:110px;text-align:left} td select{border:1px solid #d8d3e4;border-radius:5px;padding:3px;font-size:12px}
+    .pill{padding:2px 9px;border-radius:12px;font-size:11px;font-weight:bold;white-space:nowrap}
+    .lvl{display:inline-block;padding:3px 12px;border-radius:20px;font-weight:bold;font-size:13px;color:#fff}
+    .ai{background:linear-gradient(135deg,#f2ecfb,#eafaf3);border-left:4px solid #6a4c93;border-radius:10px;padding:14px;font-size:14px;line-height:1.7}
+    .plan{background:#faf7ff;border:1px solid #e3d9f2;border-radius:10px;padding:12px;margin-top:8px}
+    .plan li{margin:7px 0;line-height:1.6;font-size:13px} .up{color:#0f7a54;font-weight:bold} .down{color:#c0392b;font-weight:bold}
+    button{border:0;border-radius:8px;cursor:pointer;font-size:13px;padding:7px 12px}
+    button.add{background:#6a4c93;color:#fff;margin-top:6px} button.ghost{background:#efeaf6;color:#6a4c93;margin-left:6px}
+    button.del{background:#f4dede;color:#c0392b;padding:2px 8px}
+    .note{color:#8a8f9c;font-size:12px}
+    @media(max-width:640px){body{padding:14px} .wrap{max-width:100%} h1{font-size:19px}
+      table{display:block;overflow-x:auto;white-space:nowrap;font-size:12px}}
+  </style>
 </head>
-<body><div style="max-width:880px;margin:0 auto 4px;background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:8px 14px;font:13px system-ui;color:#7a5b00">🔬 <b>デモ版</b>：数値は<b>サンプル（実測・実データではありません）</b>。ロジックの見せ方を確認するためのプロトタイプです。</div>
+<body><div style="max-width:880px;margin:0 auto 4px;background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:8px 14px;font:13px system-ui;color:#7a5b00">🔬 <b>実データ入力版</b>：担当クライアントの4因子(利用・幅・深さ・統治)を<b>入力すると、AI活用Index・レーダー・業界内順位・トリアージ・顧問アクションを実計算</b>します。業界中央値は入力集団から算出。</div>
 <div id="root"></div>
 <script type="text/plain" id="__jsx">
-  const CLIENTS=[{id:1,company:"デモ商事",industry:"IT",score:62.5},
-    {id:2,company:"サンプル製作所",industry:"製造",score:38.0},
-    {id:3,company:"テスト広告",industry:"広告",score:71.0}];
-  const PORTAL={company:"デモ商事",score:62.5,
-    factors:{utilization:60,breadth:50,depth:70,governance:70},
-    benchmark:{available:true,median:55,percentile_of:33.3,n:6}};
-  function App(){
-    const [tab,setTab]=React.useState("advisor");
-    return (<div className="wrap"><h1>AI顧問オペレーションOS <small style={{fontSize:12,color:"#889"}}>(デモ)</small></h1>
-      <nav><button onClick={()=>setTab("advisor")} disabled={tab==="advisor"}>顧問コンソール</button>
-        <button onClick={()=>setTab("client")} disabled={tab==="client"}>クライアントポータル</button></nav>
-      {tab==="advisor"?(<div className="card"><h2>担当クライアント(最大50社)</h2>
-        <table><tr><th>企業</th><th>業界</th><th>Index</th><th>状態</th></tr>
-          {CLIENTS.map(c=>(<tr key={c.id}><td>{c.company}</td><td>{c.industry}</td><td>{c.score.toFixed(1)}</td>
-            <td>{c.score>=60?"🟢良好":c.score>=40?"🟡要注視":"🔴要介入"}</td></tr>))}</table></div>
-      ):(<div className="card"><h2>{PORTAL.company} の AI活用状況</h2>
-        <div className="big">{PORTAL.score.toFixed(1)} <small>/100</small></div>
-        <h3>4因子</h3><ul>{Object.entries(PORTAL.factors).map(([k,v])=>(<li key={k}>{k}: {v}</li>))}</ul>
-        <h3>業界ベンチマーク</h3><p>中央値 {PORTAL.benchmark.median} / 上位 <b>{PORTAL.benchmark.percentile_of}%</b>（n={PORTAL.benchmark.n}）</p>
-      </div>)}</div>);
-  }
-  ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-</script><script>(function(){var src=document.getElementById("__jsx").textContent;var out=Babel.transform(src,{presets:[["react",{runtime:"classic"}]]}).code;(0,eval)(out);})();</script></body></html>
+const FK=["利用・定着","活用の幅","活用の深さ","ガバナンス"];
+const FKEY=["util","breadth","depth","gov"];
+const IND=["IT","製造","広告","小売","金融","その他"];
+const TIP={util:"WAU/継続率の底上げ：基礎研修と業務テンプレ配布",breadth:"ユースケースの横展開：部署横断で用途を拡張",depth:"定型→分析→意思決定へ：高度ユースケースを設計",gov:"利用ルール整備と全社周知：安全に使える体制"};
+const CL0=[
+  {id:1,company:"デモ商事",industry:"IT",util:60,breadth:50,depth:70,gov:70},
+  {id:2,company:"サンプル製作所",industry:"製造",util:40,breadth:35,depth:38,gov:42},
+  {id:3,company:"テスト広告",industry:"広告",util:75,breadth:70,depth:68,gov:72},
+];
+const idx=c=>Math.round((c.util+c.breadth+c.depth+c.gov)/4*10)/10;
+const color=v=>v>=60?"#17a673":v>=40?"#f0a500":"#c0392b";
+function tri(v){return v>=60?["良好","#17a673"]:v>=40?["要注視","#f0a500"]:["要介入","#c0392b"];}
+function level(t){return t>=70?["先進","#0f7a54"]:t>=55?["標準以上","#17a673"]:t>=40?["平均並み","#f0a500"]:["要支援","#c0392b"];}
+
+function Radar({own,median}){
+  const cx=150,cy=145,R=100,N=4;
+  const ang=i=>-Math.PI/2+i*2*Math.PI/N;
+  const pt=(i,ratio)=>[cx+Math.cos(ang(i))*R*ratio, cy+Math.sin(ang(i))*R*ratio];
+  const poly=arr=>arr.map((v,i)=>pt(i,Math.max(0,Math.min(1,v/100))).join(",")).join(" ");
+  return (<svg width="100%" viewBox="0 0 300 300" style={{maxWidth:340}}>
+    {[0.33,0.66,1].map((rr,k)=>(<polygon key={k} points={FK.map((_,i)=>pt(i,rr).join(",")).join(" ")} fill="none" stroke="#eae7f0"/>))}
+    {FK.map((_,i)=>{const[x,y]=pt(i,1);return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#eae7f0"/>;})}
+    <polygon points={poly(median)} fill="none" stroke="#8aa9d6" strokeWidth="2" strokeDasharray="4 3"/>
+    <polygon points={poly(own)} fill="#6a4c9333" stroke="#6a4c93" strokeWidth="2.5"/>
+    {FK.map((a,i)=>{const[x,y]=pt(i,1.18);return <text key={i} x={x} y={y} textAnchor="middle" fontSize="9.5" fill="#556">{a}</text>;})}
+  </svg>);
+}
+
+function App(){
+  const [clients,setClients]=React.useState(CL0);
+  const [sel,setSel]=React.useState(0);
+  const withIdx=clients.map(c=>({...c,score:idx(c)}));
+  const c=withIdx[Math.min(sel,withIdx.length-1)]||withIdx[0];
+  // 業界中央値(同業界の集団から算出。1社ならその値)
+  const peers=withIdx.filter(x=>x.industry===c.industry);
+  const med=k=>{const a=peers.map(p=>p[k]).sort((x,y)=>x-y);const n=a.length;return n?Math.round(n%2?a[(n-1)/2]:(a[n/2-1]+a[n/2])/2):0;};
+  const median=FKEY.map(k=>med(k));
+  const medScore=Math.round(median.reduce((a,b)=>a+b,0)/4*10)/10;
+  const own=FKEY.map(k=>c[k]);
+  const rank=[...peers].sort((a,b)=>b.score-a.score).findIndex(p=>p.id===c.id)+1;
+  const [lvl,lvlc]=level(c.score);
+  const diff=(c.score-medScore).toFixed(1);
+  const weak=FKEY.map((k,i)=>({k,i,jp:FK[i],v:c[k],gap:median[i]-c[k],tip:TIP[k]})).sort((a,b)=>a.v-b.v);
+  const losing=weak.filter(w=>w.gap>0).sort((a,b)=>b.gap-a.gap);
+  const upd=(i,k,v)=>setClients(cs=>cs.map((x,j)=>j===i?{...x,[k]:(k==="company"||k==="industry")?v:(Number(v)||0)}:x));
+  const del=i=>setClients(cs=>cs.filter((_,j)=>j!==i));
+  const add=()=>setClients(cs=>[...cs,{id:Date.now(),company:"新規クライアント",industry:"IT",util:50,breadth:45,depth:45,gov:50}]);
+
+  return (<div className="wrap">
+    <h1>AI顧問オペレーションOS <span className="sub">クライアントのAI活用を採点・比較し、次アクションを提示</span></h1>
+
+    <div className="card">
+      <div className="real">✏️ <b>クライアントの4因子(0〜100)を入力</b>。行クリックで下の詳細・レーダーに反映。Indexは4因子平均、業界中央値は同業界の集団から算出します。</div>
+      <table><thead><tr><th className="l">企業</th><th>業界</th><th>利用</th><th>幅</th><th>深さ</th><th>統治</th><th>Index</th><th>状態</th><th></th></tr></thead>
+        <tbody>{withIdx.map((x,i)=>{const [st,cc]=tri(x.score);return (<tr key={x.id} className={"clk"+(i===sel?" sel":"")} onClick={()=>setSel(i)}>
+          <td className="l"><input className="nm" value={x.company} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"company",e.target.value)}/></td>
+          <td><select value={x.industry} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"industry",e.target.value)}>{IND.map(s=>(<option key={s}>{s}</option>))}</select></td>
+          <td><input value={x.util} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"util",e.target.value)}/></td>
+          <td><input value={x.breadth} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"breadth",e.target.value)}/></td>
+          <td><input value={x.depth} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"depth",e.target.value)}/></td>
+          <td><input value={x.gov} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"gov",e.target.value)}/></td>
+          <td><b>{x.score.toFixed(1)}</b></td>
+          <td><span className="pill" style={{background:cc+"22",color:cc}}>{st}</span></td>
+          <td><button className="del" onClick={e=>{e.stopPropagation();del(i);}}>×</button></td></tr>);})}
+        </tbody></table>
+      <button className="add" onClick={add}>＋ クライアント追加</button>
+      <button className="ghost" onClick={()=>setClients(CL0)}>サンプルに戻す</button>
+    </div>
+
+    <div className="card" style={{display:"flex",gap:24,flexWrap:"wrap",alignItems:"center",justifyContent:"space-between"}}>
+      <div>
+        <h2>{c.company} の AI活用Index</h2>
+        <div className="big">{c.score.toFixed(1)} <span style={{fontSize:16,color:"#8a8f9c"}}>/100</span></div>
+        <span className="lvl" style={{background:lvlc}}>水準: {lvl}</span>
+        <div style={{marginTop:8,fontSize:14}}>業界({c.industry})中央値 {medScore} より <b className={diff>=0?"up":"down"}>{diff>=0?"+"+diff:diff}点</b>
+          {peers.length>1 && <span> ／ 同業界{peers.length}社中 <b>{rank}位</b></span>}</div>
+        <div className="sub">※中央値は入力集団(同業界{peers.length}社)から算出。母集団が増えるほど精度が上がります。</div>
+      </div>
+      <div><Radar own={own} median={median}/><div className="sub" style={{textAlign:"center"}}>■当該社 ／ ┈業界中央値</div></div>
+    </div>
+
+    <div className="card">
+      <div className="ai"><b>🤖 トリアージ・顧問コメント</b><br/>
+        {c.score<40?<span><b>要介入</b>：まず定着の土台づくりが急務。</span>:c.score<60?<span><b>要注視</b>：伸ばせば標準以上へ届く水準。</span>:<span><b>良好</b>：さらに深さ・幅を伸ばして先進レベルへ。</span>}
+        最も弱い因子は <b>{weak[0].jp}</b>({weak[0].v}点)。
+        {losing.length?<span>業界中央値に届いていない{losing.length}因子を底上げすると Index を <b>+{(losing.reduce((a,x)=>a+x.gap,0)/4).toFixed(1)}点</b>改善できます。</span>:<span>全因子で業界中央値以上です。</span>}
+      </div>
+      <div className="plan">
+        <div style={{fontWeight:"bold",color:"#6a4c93",marginTop:4}}>顧問アクション（弱い順）</div>
+        <ul>{weak.slice(0,3).map((w,k)=>(<li key={k}><b>{w.jp}</b>：{w.v}点{w.gap>0?<span>（中央値まで<span className="up">+{w.gap}</span>）</span>:<span>（中央値以上 ✓）</span>} — {w.tip}</li>))}</ul>
+      </div>
+    </div>
+
+    <p className="note">※Indexは4因子の単純平均、業界中央値は入力された同業界クライアントの中央値です。実運用では月次の実測値(WAU・ユースケース数・研修受講率・ルール整備率など)を接続します。</p>
+  </div>);
+}
+</script>
+<script>(function(){var src=document.getElementById("__jsx").textContent;var out=Babel.transform(src,{presets:[["react",{runtime:"classic"}]]}).code;(0,eval)(out);ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));})();</script>
+</body></html>
