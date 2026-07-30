@@ -26,22 +26,50 @@
     button.add{background:#6a4c93;color:#fff;margin-top:6px} button.ghost{background:#efeaf6;color:#6a4c93;margin-left:6px}
     button.del{background:#f4dede;color:#c0392b;padding:2px 8px}
     .note{color:#8a8f9c;font-size:12px}
+    .src{background:#f8f7fb;border:1px solid #e6e2ee;border-left:4px solid #a99cc4;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#445;line-height:1.8;margin:8px 0}
+    .src b{color:#1a1a2e} .src div{margin:3px 0}
     @media(max-width:640px){body{padding:14px} .wrap{max-width:100%} h1{font-size:19px}
       table{display:block;overflow-x:auto;white-space:nowrap;font-size:12px}}
   </style>
 </head>
-<body><div style="max-width:880px;margin:0 auto 4px;background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:8px 14px;font:13px system-ui;color:#7a5b00">🔬 <b>実データ入力版</b>：担当クライアントの4因子(利用・幅・深さ・統治)を<b>入力すると、AI活用Index・レーダー・業界内順位・トリアージ・顧問アクションを実計算</b>します。業界中央値は入力集団から算出。</div>
+<body><div style="max-width:880px;margin:0 auto 4px;background:#fff8e1;border:1px solid #f0d98a;border-radius:10px;padding:8px 14px;font:13px system-ui;color:#7a5b00">🔬 <b>実データ入力版</b>：クライアントの<b>数えられる事実</b>（使った人数・部署数・到達段階・ルール整備数）を入力すると、<b>4指標とAI活用Indexを自動計算</b>し、業界内での位置・優先アクションを出します。主観の点数付けはしません。</div>
 <div id="root"></div>
 <script type="text/plain" id="__jsx">
 const FK=["利用・定着","活用の幅","活用の深さ","ガバナンス"];
 const FKEY=["util","breadth","depth","gov"];
 const IND=["IT","製造","広告","小売","金融","その他"];
 const TIP={util:"WAU/継続率の底上げ：基礎研修と業務テンプレ配布",breadth:"ユースケースの横展開：部署横断で用途を拡張",depth:"定型→分析→意思決定へ：高度ユースケースを設計",gov:"利用ルール整備と全社周知：安全に使える体制"};
-const CL0=[
-  {id:1,company:"デモ商事",industry:"IT",util:60,breadth:50,depth:70,gov:70},
-  {id:2,company:"サンプル製作所",industry:"製造",util:40,breadth:35,depth:38,gov:42},
-  {id:3,company:"テスト広告",industry:"広告",util:75,breadth:70,depth:68,gov:72},
+
+// ★4因子の定義と「どう測るか」。主観の点数付けをやめ、数えられる事実から自動算出する
+const DEF=[
+  {k:"利用・定着", q:"どれくらいの人が、継続して使っているか",
+   how:"週1回以上AIを使った人数 ÷ 対象者数（＝WAU率）",
+   calc:"WAU率をそのまま0〜100に換算", ex:"110名中66名が週1回以上使用 → 60点"},
+  {k:"活用の幅", q:"社内の何割の部署に広がっているか",
+   how:"AIを業務で使っている部署数 ÷ 全部署数",
+   calc:"導入部署の割合を0〜100に換算", ex:"全8部署のうち4部署で使用 → 50点"},
+  {k:"活用の深さ", q:"「調べる」で止まらず「任せる」まで進んでいるか",
+   how:"用途を4段階で数える：①検索/相談 ②文書作成 ③分析・示唆 ④業務そのものを自動化",
+   calc:"到達した最高段階 × 25点（例：③まで到達=75点）", ex:"分析までできている → 75点"},
+  {k:"ガバナンス", q:"安全に使うルールが何項目整っているか",
+   how:"必須10項目のチェック（利用ルール文書化／禁止事項の明示／機密入力の禁止／ログ取得／権限管理／教育実施／相談窓口／外部送信の可否判断／定期監査／インシデント手順）",
+   calc:"整備できた項目数 × 10点", ex:"10項目中7項目 → 70点"},
 ];
+
+// 生データ(数えられる事実)から4因子を自動計算
+function derive(r){
+  const util=r.users>0?Math.round(r.wauUsers/r.users*100):0;
+  const breadth=r.depts>0?Math.round(r.useDepts/r.depts*100):0;
+  const depth=Math.min(4,Math.max(0,r.stage))*25;
+  const gov=Math.min(10,Math.max(0,r.govItems))*10;
+  return {util:Math.min(100,util), breadth:Math.min(100,breadth), depth, gov};
+}
+const CL0=[
+  {id:1,company:"デモ商事",       industry:"IT", users:110, wauUsers:66, depts:8, useDepts:4, stage:3, govItems:7},
+  {id:2,company:"サンプル製作所", industry:"製造", users:250, wauUsers:100, depts:10, useDepts:3, stage:2, govItems:4},
+  {id:3,company:"テスト広告",     industry:"広告", users:60, wauUsers:45, depts:5, useDepts:4, stage:3, govItems:7},
+];
+const STAGE=["未使用","①検索・相談","②文書作成","③分析・示唆","④業務の自動化"];
 const idx=c=>Math.round((c.util+c.breadth+c.depth+c.gov)/4*10)/10;
 const color=v=>v>=60?"#17a673":v>=40?"#f0a500":"#c0392b";
 function tri(v){return v>=60?["良好","#17a673"]:v>=40?["要注視","#f0a500"]:["要介入","#c0392b"];}
@@ -64,7 +92,8 @@ function Radar({own,median}){
 function App(){
   const [clients,setClients]=React.useState(CL0);
   const [sel,setSel]=React.useState(0);
-  const withIdx=clients.map(c=>({...c,score:idx(c)}));
+  // 生データ→4因子を自動算出→Index
+  const withIdx=clients.map(r=>{const f=derive(r);return {...r,...f,score:idx(f)};});
   const c=withIdx[Math.min(sel,withIdx.length-1)]||withIdx[0];
   // 業界中央値(同業界の集団から算出。1社ならその値)
   const peers=withIdx.filter(x=>x.industry===c.industry);
@@ -79,27 +108,66 @@ function App(){
   const losing=weak.filter(w=>w.gap>0).sort((a,b)=>b.gap-a.gap);
   const upd=(i,k,v)=>setClients(cs=>cs.map((x,j)=>j===i?{...x,[k]:(k==="company"||k==="industry")?v:(Number(v)||0)}:x));
   const del=i=>setClients(cs=>cs.filter((_,j)=>j!==i));
-  const add=()=>setClients(cs=>[...cs,{id:Date.now(),company:"新規クライアント",industry:"IT",util:50,breadth:45,depth:45,gov:50}]);
+  const add=()=>setClients(cs=>[...cs,{id:Date.now(),company:"新規クライアント",industry:"IT",users:100,wauUsers:40,depts:8,useDepts:3,stage:2,govItems:5}]);
 
   return (<div className="wrap">
     <h1>AI顧問オペレーションOS <span className="sub">クライアントのAI活用を採点・比較し、次アクションを提示</span></h1>
 
+    <div className="card" style={{background:"#fdfcff"}}>
+      <h2>4つの指標は何を見ている？ <span className="sub">（主観で点数をつけません。数えられる事実から自動計算します）</span></h2>
+      <table style={{marginTop:6}}><thead><tr><th className="l" style={{width:"14%"}}>指標</th><th className="l">何を知りたいか</th><th className="l">何を数えるか（測り方）</th><th className="l">点数の付け方</th></tr></thead>
+        <tbody>{DEF.map((d,i)=>(<tr key={i}>
+          <td className="l"><b>{d.k}</b></td><td className="l">{d.q}</td><td className="l">{d.how}</td>
+          <td className="l">{d.calc}<br/><span className="sub">例: {d.ex}</span></td></tr>))}
+        </tbody></table>
+      <div className="src">
+        <b>なぜこう決めたか</b>
+        <div>・「幅」「深さ」のような曖昧な言葉は<b>人によって基準が変わる</b>ため、点数を直接入力させる設計をやめました。</div>
+        <div>・代わりに<b>誰が数えても同じ答えになる事実</b>（人数・部署数・到達段階・チェック項目数）だけを入力し、点数は自動計算します。</div>
+        <div>・「活用の深さ」の4段階は<b>当社が定義した基準</b>です（公的な標準ではありません）。段階の定義を自社の実情に合わせて変更してもかまいません。</div>
+      </div>
+    </div>
+
     <div className="card">
-      <div className="real">✏️ <b>クライアントの4因子(0〜100)を入力</b>。行クリックで下の詳細・レーダーに反映。Indexは4因子平均、業界中央値は同業界の集団から算出します。</div>
-      <table><thead><tr><th className="l">企業</th><th>業界</th><th>利用</th><th>幅</th><th>深さ</th><th>統治</th><th>Index</th><th>状態</th><th></th></tr></thead>
+      <div className="real">✏️ <b>数えられる事実を入力</b>してください（行クリックで下の詳細に反映）。右側の4因子とIndexは<b>入力値から自動計算</b>されます。</div>
+      <table><thead><tr>
+        <th className="l">企業</th><th>業界</th>
+        <th>対象者<br/><span className="sub">人</span></th><th>週1回以上<br/>使った人</th>
+        <th>全部署<br/><span className="sub">数</span></th><th>使っている<br/>部署数</th>
+        <th>到達段階<br/><span className="sub">①〜④</span></th><th>ルール<br/><span className="sub">/10項目</span></th>
+        <th>Index</th><th>状態</th><th></th></tr></thead>
         <tbody>{withIdx.map((x,i)=>{const [st,cc]=tri(x.score);return (<tr key={x.id} className={"clk"+(i===sel?" sel":"")} onClick={()=>setSel(i)}>
           <td className="l"><input className="nm" value={x.company} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"company",e.target.value)}/></td>
           <td><select value={x.industry} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"industry",e.target.value)}>{IND.map(s=>(<option key={s}>{s}</option>))}</select></td>
-          <td><input value={x.util} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"util",e.target.value)}/></td>
-          <td><input value={x.breadth} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"breadth",e.target.value)}/></td>
-          <td><input value={x.depth} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"depth",e.target.value)}/></td>
-          <td><input value={x.gov} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"gov",e.target.value)}/></td>
+          <td><input value={x.users} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"users",e.target.value)}/></td>
+          <td><input value={x.wauUsers} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"wauUsers",e.target.value)}/></td>
+          <td><input value={x.depts} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"depts",e.target.value)}/></td>
+          <td><input value={x.useDepts} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"useDepts",e.target.value)}/></td>
+          <td><select value={x.stage} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"stage",e.target.value)}>
+            {[0,1,2,3,4].map(s=>(<option key={s} value={s}>{STAGE[s]}</option>))}</select></td>
+          <td><input value={x.govItems} onClick={e=>e.stopPropagation()} onChange={e=>upd(i,"govItems",e.target.value)}/></td>
           <td><b>{x.score.toFixed(1)}</b></td>
           <td><span className="pill" style={{background:cc+"22",color:cc}}>{st}</span></td>
           <td><button className="del" onClick={e=>{e.stopPropagation();del(i);}}>×</button></td></tr>);})}
         </tbody></table>
       <button className="add" onClick={add}>＋ クライアント追加</button>
       <button className="ghost" onClick={()=>setClients(CL0)}>サンプルに戻す</button>
+    </div>
+
+    <div className="card">
+      <h2>{c.company} の点数の計算過程（なぜこの点数か）</h2>
+      <table><thead><tr><th className="l">指標</th><th className="l">入力した事実</th><th className="l">計算</th><th>点数</th></tr></thead>
+        <tbody>
+          <tr><td className="l"><b>利用・定着</b></td><td className="l">対象{c.users}名のうち、週1回以上使った人 {c.wauUsers}名</td>
+            <td className="l">{c.wauUsers} ÷ {c.users} = {c.users>0?(c.wauUsers/c.users*100).toFixed(1):0}%</td><td><b>{c.util}</b></td></tr>
+          <tr><td className="l"><b>活用の幅</b></td><td className="l">全{c.depts}部署のうち、使っている部署 {c.useDepts}部署</td>
+            <td className="l">{c.useDepts} ÷ {c.depts} = {c.depts>0?(c.useDepts/c.depts*100).toFixed(1):0}%</td><td><b>{c.breadth}</b></td></tr>
+          <tr><td className="l"><b>活用の深さ</b></td><td className="l">到達段階: <b>{STAGE[Math.min(4,Math.max(0,c.stage))]}</b></td>
+            <td className="l">段階{Math.min(4,Math.max(0,c.stage))} × 25点</td><td><b>{c.depth}</b></td></tr>
+          <tr><td className="l"><b>ガバナンス</b></td><td className="l">必須10項目のうち {c.govItems}項目を整備</td>
+            <td className="l">{c.govItems} × 10点</td><td><b>{c.gov}</b></td></tr>
+          <tr style={{background:"#f7f3fd"}}><td className="l"><b>Index</b></td><td className="l" colSpan="2">4指標の平均 = ({c.util}+{c.breadth}+{c.depth}+{c.gov}) ÷ 4</td><td><b>{c.score.toFixed(1)}</b></td></tr>
+        </tbody></table>
     </div>
 
     <div className="card" style={{display:"flex",gap:24,flexWrap:"wrap",alignItems:"center",justifyContent:"space-between"}}>
