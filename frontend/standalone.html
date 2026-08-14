@@ -89,8 +89,75 @@ function Radar({own,median}){
   </svg>);
 }
 
+
+// ===== 自動保存 & データ書き出し/読み込み（入力内容がリロードで消えないようにする） =====
+const STORE="advisor_v1";
+function usePersist(name,initial){
+  const [v,setV]=React.useState(function(){
+    try{var s=localStorage.getItem(STORE+":"+name);return s?JSON.parse(s):initial;}catch(e){return initial;}
+  });
+  React.useEffect(function(){
+    try{localStorage.setItem(STORE+":"+name,JSON.stringify(v));}catch(e){}
+  },[name,v]);
+  return [v,setV];
+}
+function collectAll(){
+  var o={};
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&k.indexOf(STORE+":")===0){try{o[k.slice(STORE.length+1)]=JSON.parse(localStorage.getItem(k));}catch(e){}}
+  }
+  return o;
+}
+function DataBar(){
+  const [msg,setMsg]=React.useState("");
+  const fileRef=React.useRef(null);
+  const save=function(){
+    try{
+      var data={_tool:STORE,_savedAt:new Date().toISOString(),data:collectAll()};
+      var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+      var a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download=STORE+"_"+new Date().toISOString().slice(0,10)+".json";
+      a.click();URL.revokeObjectURL(a.href);
+      setMsg("書き出しました");setTimeout(function(){setMsg("");},2500);
+    }catch(e){setMsg("書き出しに失敗しました");}
+  };
+  const load=function(e){
+    var f=e.target.files&&e.target.files[0]; if(!f)return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{
+        var j=JSON.parse(rd.result);
+        if(!j||!j.data)throw new Error("形式が違います");
+        if(j._tool&&j._tool!==STORE){ if(!confirm("別のツールのファイルのようです。読み込みますか？"))return; }
+        Object.keys(j.data).forEach(function(k){localStorage.setItem(STORE+":"+k,JSON.stringify(j.data[k]));});
+        location.reload();
+      }catch(err){setMsg("読み込めませんでした（"+err.message+"）");}
+    };
+    rd.readAsText(f);
+  };
+  const clear=function(){
+    if(!confirm("入力した内容をすべて消して、最初の状態に戻します。よろしいですか？"))return;
+    var del=[];
+    for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(STORE+":")===0)del.push(k);}
+    del.forEach(function(k){localStorage.removeItem(k);});
+    location.reload();
+  };
+  return (<div style={{background:"#f2f7f4",border:"1px solid #cfe3d8",borderRadius:10,padding:"9px 12px",
+      margin:"0 0 12px",fontSize:13,display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",color:"#0f5c3f"}}>
+    <span>💾 <b>入力した内容はこの端末に自動保存されます</b>（閉じても消えません）</span>
+    <span style={{flex:1}}></span>
+    <button onClick={save} style={{border:0,borderRadius:7,background:"#17a673",color:"#fff",padding:"6px 11px",cursor:"pointer",fontSize:12.5}}>データを書き出す</button>
+    <button onClick={function(){fileRef.current&&fileRef.current.click();}} style={{border:0,borderRadius:7,background:"#e7f0eb",color:"#0f5c3f",padding:"6px 11px",cursor:"pointer",fontSize:12.5}}>読み込む</button>
+    <button onClick={clear} style={{border:0,borderRadius:7,background:"#f7e4e4",color:"#c0392b",padding:"6px 11px",cursor:"pointer",fontSize:12.5}}>最初に戻す</button>
+    <input ref={fileRef} type="file" accept="application/json" onChange={load} style={{display:"none"}}/>
+    {msg && <span style={{color:"#0f5c3f",fontWeight:"bold"}}>{msg}</span>}
+  </div>);
+}
+
 function App(){
-  const [clients,setClients]=React.useState(CL0);
+  const [clients,setClients]=usePersist("clients",CL0);
   const [sel,setSel]=React.useState(0);
   // 生データ→4因子を自動算出→Index
   const withIdx=clients.map(r=>{const f=derive(r);return {...r,...f,score:idx(f)};});
@@ -110,7 +177,7 @@ function App(){
   const del=i=>setClients(cs=>cs.filter((_,j)=>j!==i));
   const add=()=>setClients(cs=>[...cs,{id:Date.now(),company:"新規クライアント",industry:"IT",users:100,wauUsers:40,depts:8,useDepts:3,stage:2,govItems:5}]);
 
-  return (<div className="wrap">
+  return (<div className="wrap"><DataBar/>
     <h1>AI顧問オペレーションOS <span className="sub">クライアントのAI活用を採点・比較し、次アクションを提示</span></h1>
 
     <div className="card" style={{background:"#fdfcff"}}>
@@ -177,7 +244,14 @@ function App(){
         <span className="lvl" style={{background:lvlc}}>水準: {lvl}</span>
         <div style={{marginTop:8,fontSize:14}}>業界({c.industry})中央値 {medScore} より <b className={diff>=0?"up":"down"}>{diff>=0?"+"+diff:diff}点</b>
           {peers.length>1 && <span> ／ 同業界{peers.length}社中 <b>{rank}位</b></span>}</div>
-        <div className="sub">※中央値は入力集団(同業界{peers.length}社)から算出。母集団が増えるほど精度が上がります。</div>
+        {peers.length<3
+          ? <div style={{background:"#fff4e0",border:"1px solid #f0d98a",borderRadius:8,padding:"9px 11px",fontSize:12.5,color:"#8a6100",lineHeight:1.7,marginTop:8}}>
+              <b>⚠ 「業界中央値」はまだ比較として使えません</b><br/>
+              同じ業界({c.industry})の登録が<b>{peers.length}社</b>しかないため、中央値は
+              {peers.length===1?"この会社自身の値そのもの":"ごく少数の値"}です。<b>上の「◯点 上/下」は意味を持ちません。</b>
+              同業界を3社以上（できれば5社以上）登録してからご覧ください。
+            </div>
+          : <div className="sub">※中央値は登録済みの同業界{peers.length}社から算出した値です（公的な業界統計ではありません）。社数が増えるほど安定します。</div>}
       </div>
       <div><Radar own={own} median={median}/><div className="sub" style={{textAlign:"center"}}>■当該社 ／ ┈業界中央値</div></div>
     </div>
